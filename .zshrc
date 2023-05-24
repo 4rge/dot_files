@@ -87,7 +87,7 @@ function sp() {setopt shwordsplit; ORIG=$(echo $BUFFER | rev | cut -f1 -d' ' | r
 
 function weather() {echo 'Fetching weather data...'; LOC=galveston,texas ; CUR=$(ansiweather -l $LOC -u imperial &) ; echo 'Fetching 7-day forecast...' ; FRC=$(ansiweather -F -l $LOC -u imperial &) ; echo '\n' $CUR '\n\n' $FRC | most -wd ; clear} ; zle -N weather ; bindkey "^W" weather
 
-function radio() {ALB=$(find "$HOME/Music/" -type d | fzf ) ; clear ; mpv --start=0 $ALB/*} ; zle -N radio ; bindkey "^P" radio
+function radio() {clear ; mpv --start=0 $(find "$HOME/Music/" -type d | fzf )/*} ; zle -N radio ; bindkey "^P" radio
 
 ## Sources
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
