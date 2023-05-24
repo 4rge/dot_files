@@ -3,19 +3,21 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 ## Options section
-setopt correct correctall
-setopt extendedglob nocaseglob rcexpandparam numericglobsort
-setopt appendhistory histignorealldups
-setopt inc_append_history histignorespace
-setopt aliases autocd
-setopt hist_save_no_dups hist_reduce_blanks
+# 
+setopt correct correctall # Enables spelling correction for commands that are mistyped and for all arguments in a command.
+setopt extendedglob nocaseglob rcexpandparam numericglobsort # Enables advanced pattern matching operators, such as '!' for negation and '|' for alternation. Matches file names case-insensitively when using glob patterns. Expands parameters inside of single quotes. Sorts file names in numerical order rather than lexicographical order.
+setopt appendhistory histignorealldups inc_append_history histignorespace hist_save_no_dups hist_reduce_blanks # Appends new commands to the existing history file. Ignores duplicate commands in the history file. Writes each command to the history file as it is executed, rather than only on exit. Ignores commands starting with a space character in the history file. Saves only the most recent instance of a duplicated command in the history file, and Removes extra blank lines from the history file.
+setopt aliases autocd # Enables the use of aliases, which are shorthand commands or command sequences. Changes to a directory if the input provided is a valid directory path.
 
+## Set completion options and cache
 zstyle ':completion:*' matcher-list 'm:{[:lower:][:upper:]}={[:upper:][:lower:]}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' rehash true
 zstyle ':completion:*' accept-exact '*(N)'
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zsh/cache
+
+## History settings
 HISTFILE=~/.zhistory
 HISTSIZE=100
 SAVEHIST=100
@@ -47,11 +49,11 @@ bindkey '^H' backward-kill-word
 bindkey '^[[Z' undo
 
 ## Alias section
-alias cp="cp -i"
-alias df='df -h'
-alias free='free -m'
-alias vim="vim -f"
-alias ls='ls --color=auto'
+alias cp="cp -i" ## Enable color
+alias df='df -h' ## Human readable output
+alias free='free -m' ## Show output in medibytes
+alias vim="vim -f" ## Force vim into the current window
+alias ls='ls --color=auto' ## Force ls to use colors
 alias c="clear"
 alias q="exit"
 
@@ -75,18 +77,25 @@ if [[ -r /usr/share/zsh/functions/command-not-found.zsh ]]; then
 fi
 
 ## Custom functions
+# When a command fails, reroute the output to chatgpt. Useful for rapid interaction with gpt
 function precmd() {case $? in 0) printf '\033[0m' ;; *) clear ; tgpt "`tail -n1 ~/.zhistory`";; esac}
 
+# When the dir is changed recieve a [y/n] prompt listing the total number of files in the dir and offer to `ls -a` on 'y'  
 function chpwd() {printf "\033[34mThere are $((`ls -l | wc -l`-1)) files in the current dir. exec ls?\033[0m: [Y/n]? "; read YN; case $YN in y|Y) ls -ash ;; *) ;; esac}
 
+# Push ctrl+z in the terminal in order to truncate your zsh history file
 function tk() {truncate ~/.zhistory -s 0 ; notify-send "History cleared"} ; zle -N tk ; bindkey '^Z' tk
 
+# Push ctrl+t in terminal to translate the current buffer into a language selected in fzf and display it in most
 function ts() {trans -b -p :`trans -list-codes | fzf --layout=reverse --border=rounded --preview-window=down,33% --preview 'trans -b :{} "$(trans --help)"'` "$BUFFER" | most} ; zle -N ts ; bindkey "^T" ts
 
+# Push ctrl+d to view aspell for the correct spelling of last word in the buffer using fzf and replace the last word, if selected. (esc exits fzf searches)
 function sp() {setopt shwordsplit; ORIG=$(echo $BUFFER | rev | cut -f1 -d' ' | rev) ; NOTE=$( echo $ORIG | aspell -a -m 10 --lang=en list | tr ' ' '\n' | tail -n +14 | sed s/,//g | fzf --layout=reverse) ; wtype -M ctrl h -m ctrl|| xdotool key --clearmodifiers ctrl+h ; RBUFFER+=" $NOTE" ; wtype -M ctrl e -m ctrl || xdotool key --clearmodifiers ctrl+e ; unsetopt shwordsplit} ; zle -N sp ; bindkey "^D" sp
 
-function weather() {echo 'Fetching weather data...'; LOC=galveston,texas ; CUR=$(ansiweather -l $LOC -u imperial &) ; echo 'Fetching 7-day forecast...' ; FRC=$(ansiweather -F -l $LOC -u imperial &) ; echo '\n' $CUR '\n\n' $FRC | most -wd ; clear} ; zle -N weather ; bindkey "^W" weather
+# Push ctrl+w to fetch local weather data for your current region as well as the 7 day forcast and display it in most
+function weather() {echo 'Fetching weather data...'; LOC=____________ ; CUR=$(ansiweather -l $LOC -u imperial &) ; echo 'Fetching 7-day forecast...' ; FRC=$(ansiweather -F -l $LOC -u imperial &) ; echo '\n' $CUR '\n\n' $FRC | most -wd ; clear} ; zle -N weather ; bindkey "^W" weather
 
+# Push ctrl+p to view your music folder in fzf and play an album using mpv
 function radio() {clear ; mpv --start=0 $(find "$HOME/Music/" -type d | fzf )/*} ; zle -N radio ; bindkey "^P" radio
 
 ## Sources
