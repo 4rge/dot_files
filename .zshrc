@@ -129,7 +129,7 @@ case $PWD in
     esac} ; zle -N w ; bindkey "^W" w
 
 # Push ctrl+p to browse music folder using fzf and launch an album using mpv
-# function radio() {clear ; mpv --start=0 $(find "$HOME/Music/" -type d | fzf )/*} ; zle -N radio ; bindkey "^P" radio
+function radio() {clear ; mpv --start=0 $(find "$HOME/Music/" -type d | fzf )/*} ; zle -N radio ; bindkey "^P" radio
 
 #########################
 ## Install ZSH depends ##
