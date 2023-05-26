@@ -87,13 +87,12 @@ zmodload zsh/terminfo
 
 ## Offer to install missing package if command is not found
 if [[ -r /usr/share/zsh/functions/command-not-found.zsh ]]; then ; source /usr/share/zsh/functions/command-not-found.zsh ; export PKGFILE_PROMPT_INSTALL_MISSING=1 ; fi
-## Add thefuck alias
-eval $(thefuck --alias)
+
 # When a command fails in the home dir reroute the output to chatgpt. if it fails in any other dir run thefuck
 function precmd() {
     case $PWD in 
         $HOME) case $? in 0) printf '\033[0m' ;; *) clear ; tgpt "`tail -n1 ~/.zhistory`";; esac ;;
-        *) case $? in 0) ;; *) fuck ;; esac ;;
+        *) case $? in 0) ;; *) ;; esac ;;
         esac}
 
 # When the dir is changed recieve a [y/n] prompt listing the total number of files in the dir and offer to `ls -a` on 'y'  
@@ -129,13 +128,13 @@ case $PWD in
     esac} ; zle -N w ; bindkey "^W" w
 
 # Push ctrl+p to browse music folder using fzf and launch an album using mpv
-# function radio() {clear ; mpv --start=0 $(find "$HOME/Music/" -type d | fzf )/*} ; zle -N radio ; bindkey "^P" radio
+function radio() {clear ; mpv --start=0 $(find "$HOME/Music/" -type d | fzf )/*} ; zle -N radio ; bindkey "^P" radio
 
 #########################
 ## Install ZSH depends ##
 #########################
 
-for PKG in ansiweather aspell axel bleachbit discord feh irqbalance logrotate nmap sha3sum tgpt thefuck tlp trans vim ; do ; if ! which $PKG &> /dev/null; then ; case $PKG in aspell) PKG='aspell-en';; trans) PKG='translate-shell' ;; *) ;; esac ; sudo pacman -S $PKG ; fi ; done
+for PKG in ansiweather aspell axel bleachbit irqbalance nmap sha3sum tgpt tlp trans vim ; do ; if ! which $PKG &> /dev/null; then ; case $PKG in aspell) PKG='aspell-en';; trans) PKG='translate-shell' ;; *) ;; esac ; sudo pacman -S $PKG ; fi ; done
 
 #############
 ## Sources ##
