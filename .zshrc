@@ -123,7 +123,7 @@ case $PWD in
 # Push ctrl+w to fetch local weather data for your current region as well as the 7 day forcast and display it in most
 function w() {
 case $PWD in
-    $HOME) echo "\033[0m\033[34mFetching weather data...\033[0m" ; LOC=galveston,texas ; CUR=$(ansiweather -l $LOC -u imperial &) ; printf "\033[0m\033[34mFetching 7-day forecast...\033[0m" ; FRC=$(ansiweather -F -l $LOC -u imperial &) ; echo '\n' $CUR '\n\n' $FRC | most -wd ; clear ;;
+    $HOME) echo "\033[0m\033[34mFetching weather data...\033[0m" ; LOC=_______ ; CUR=$(ansiweather -l $LOC -u imperial &) ; printf "\033[0m\033[34mFetching 7-day forecast...\033[0m" ; FRC=$(ansiweather -F -l $LOC -u imperial &) ; echo '\n' $CUR '\n\n' $FRC | most -wd ; clear ;;
     *) ;;
     esac} ; zle -N w ; bindkey "^W" w
 
