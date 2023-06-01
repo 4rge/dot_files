@@ -1,4 +1,8 @@
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then ; source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ; fi
+## #!/usr/bin/env zsh
+
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
 
 ############
 ## Setops ##
@@ -24,12 +28,8 @@ zstyle ':completion:*' cache-path ~/.zsh/cache
 ## History ##
 #############
 
-readonly HISTORY=~/.zhistory
-export HISTORY
-
-readonly SIZE=100
-export SIZE
-
+HISTORY=(~/.zhistory)
+SIZE=(100)
 HISTFILE="${HISTORY}"
 HISTSIZE="${SIZE}"
 SAVEHIST="${SIZE}"
@@ -60,7 +60,7 @@ alias ls='ls --color=auto' ## Force ls to use colors
 alias c="clear" ## Clear the current terminal
 alias q="exit" ## Exit the current shell
 alias z="zcompile ~/.zshrc ; notify-send '.zshrc recompiled'" ## Recompile zsh as a binary source
-eval $(thefuck --alias) ## Add 'the fuck' alias
+eval "$(thefuck --alias)" ## Add 'the fuck' alias
 
 #############
 ## Theming ##
@@ -83,11 +83,11 @@ fi
 ## When a command fails in the home dir reroute the output to fuck unless cmd not found, then reroute to chatgpt. If it fails in any other dir run thefuck
 function precmd() {
   case "${PWD}" in 
-    $HOME)
+    "${HOME}")
       case "${?}" in 
         0) ;;
         1) fuck ;;
-        *) clear ; tgpt "`tail -n1 ${HISTORY}`" ;;
+        *) clear ; tgpt "$(tail -n1 "${HISTORY}")" ;;
       esac ;;
     *)
       case "${?}" in 0) ;;
@@ -100,9 +100,8 @@ function chpwd() {
   case "${PWD}" in
     "${HOME}") dirs -c ;;
     *)
-      printf "\033[m\033[34mThere are $(( `ls -l | wc -l`-1 )) files in the current dir.
-      exec ls?\033[0m: [Y/n]? "
-      read YN
+      echo "\033[34mThere are $(( $( ls -l | wc -l)-1 )) files in the current dir. Exec ls?\033[0m: [Y/n]? "
+      read -r YN
         case "${YN}" in
           y|Y) ls -ash ;;
       esac ;;
@@ -124,10 +123,7 @@ case "${PWD}" in
         dirs -c
         notify-send 'History cleared' ;;
       *)
-        trans -b :`trans -list-codes \
-        | fzf --layout=reverse --border=rounded --preview-window=down,33% \
-        --preview 'trans -b :{} "$( tail -n1 $HISTORY )"'` "${BUFFER}" \
-        | most ;;
+        trans -b :"$(trans -list-codes | fzf --layout=reverse)" "${BUFFER}" | most ;;
     esac ;;
   *) ;;
 esac }
@@ -137,7 +133,7 @@ bindkey "^T" _t
 ## Push ctrl+d to view aspell for the correct spelling of last word in the buffer using fzf and replace the last word, if selected. (esc exits fzf searches)
 function _s() {
 case ${PWD} in
-  $HOME)
+  "${HOME}")
     setopt shwordsplit
     NOTE=$( echo "${BUFFER}" \
     | rev \
@@ -148,7 +144,8 @@ case ${PWD} in
     | tail -n +14 \
     | sed s/,//g \
     | fzf --layout=reverse )
-    if [[ -z "${NOTE}" ]] ; then ; return
+    if [[ -z "${NOTE}" ]] ; then
+      return
     else xdotool key --clearmodifiers ctrl+h || wtype -M ctrl h -m ctrl
       RBUFFER+="${NOTE}"
       xdotool key --clearmodifiers ctrl+e || wtype -M ctrl e -m ctrl
@@ -163,10 +160,10 @@ bindkey "^D" _s
 function _w() {
 case "${PWD}" in
   "${HOME}")
-    readonly LOC="galveston,texas"
+    declare -r LOC="galveston,texas"
     printf "\033[0m\033[34mFetching weather data...\033[0m"
     CUR=$(ansiweather -l "${LOC}" -u imperial -i true -w true -h true -H true -p true -d true -a false &)
-    printf "\033[0m\033[34m\nFetching 7-day forecast...\033[0m"
+    printf "\033[0m\033[34m\nFetching 7-day forecast...\n\033[0m"
     FRC=$(ansiweather -F -l "${LOC}" -u imperial -a false &)
     echo "${CUR}" '\n\n' "${FRC}" | most -wd;;
   *) ;;
@@ -177,7 +174,8 @@ bindkey "^W" _w
 ## Push ctrl+p to browse music folder using fzf and launch an album using mpv
 function radio() {
   clear
-  mpv --start=0 $( find "${HOME}/Music/" -type d | fzf )/* }
+  mpv --start=0 "$(find "$("${HOME}/Music/" -type d | fzf )"/*)"
+  }
 zle -N radio
 bindkey "^P" radio
 
@@ -189,19 +187,22 @@ SCRIPT= ## Set the $SCRIPT var
 
 ## Push ctrl+a to add the last command run to your script var
 function _script::add() {
-  SCRIPT+=($(tail -n1 "${HISTORY}")) ; notify-send "Snippet added" }
+  SCRIPT+=("$(tail -n1 "${HISTORY}")\n") ; notify-send "Snippet added"
+  }
 zle -N _script::add
 bindkey "^A" _script::add 
 
 ## Push ctrl+v to view the SCRIPT var in vim
 function _script::view() {
-  echo "${SCRIPT}" | vim -}
+  echo "$SCRIPT" | vim -
+  }
 zle -N _script::view
 bindkey "^V" _script::view
 
 ## Push ctrl+e to clear the script buffer
 function _script::erase() {
-  SCRIPT=() ; notify-send "Script buffer cleared" }
+  SCRIPT=() ; notify-send "Script buffer cleared"
+  }
 zle -N _script::erase
 bindkey "^E" _script::erase
 
@@ -233,8 +234,10 @@ function _zsh::setup() {
     fi
   done
 ## Print the missing packages to terminal
-  if [[ -z "${OUT}" ]] ; then ; return
-    else; print -z "sudo pacman -Syyu ${OUT}"
+  if [[ -z "${OUT}" ]] ; then
+    return
+  else
+    print -z "sudo pacman -Syyu ${OUT}"
   fi }
 ## Execute Setup at startup
 _zsh::setup
