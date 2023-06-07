@@ -1,11 +1,11 @@
-## #!/usr/bin/env zsh
+#!/usr/bin/env zsh
 
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
 ############
-## Setops ##
+## Setops
 ############
 
 setopt correct correctall # Enables spelling correction for commands that are mistyped and for all arguments in a command.
@@ -14,7 +14,7 @@ setopt appendhistory histignorealldups inc_append_history histignorespace hist_s
 setopt aliases autocd # Enables the use of aliases, which are shorthand commands or command sequences. Changes to a directory if the input provided is a valid directory path.
 
 ################################
-## Completion options & cache ##
+## Completion options & cache
 ################################
 
 zstyle ':completion:*' matcher-list 'm:{[:lower:][:upper:]}={[:upper:][:lower:]}'
@@ -25,7 +25,7 @@ zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path ~/.zsh/cache
 
 #############
-## History ##
+## History
 #############
 
 HISTORY=(~/.zhistory)
@@ -36,7 +36,7 @@ SAVEHIST="${SIZE}"
 WORDCHARS=${WORDCHARS//\/[&.;]}
 
 #################
-## Keybindings ##
+## Keybindings
 #################
 
 bindkey -e
@@ -49,21 +49,33 @@ bindkey '^[Oc' forward-word ; bindkey '^[[1;5C' forward-word
 bindkey '^H' backward-kill-word
 
 ###########
-## Alias ##
+## Alias
 ###########
 
+# Rewrites
 alias cp="cp -i" ## Enable color
 alias df='df -h' ## Human readable output
 alias free='free -m' ## Show output in medibytes
 alias vim="vim -f" ## Force vim into the current window
 alias ls='ls --color=auto' ## Force ls to use colors
+eval "$(thefuck --alias)" ## Add 'the fuck' alias
+
+# Color aliases
+declare -r WHITE="\033[0m"
+declare -r RED="\033[31m"
+declare -r GREEN="\033[32m"
+declare -r BLUE="\033[34m"
+declare -r CYAN="\033[36m"
+declare -r YELLOW="\033[33m"
+declare -r MAGENTA="\033[35m"
+
+# Single letter aliases
 alias c="clear" ## Clear the current terminal
 alias q="exit" ## Exit the current shell
 alias z="zcompile ~/.zshrc ; notify-send '.zshrc recompiled'" ## Recompile zsh as a binary source
-eval "$(thefuck --alias)" ## Add 'the fuck' alias
 
 #############
-## Theming ##
+## Theming
 #############
 
 autoload -Uz compinit && compinit -u ## Autoload all zsh functions
@@ -71,9 +83,9 @@ export LESS_TERMCAP_us=$'\E[01;36m'
 export LESS=-R
 zmodload zsh/terminfo
 
-############
-## Precmd ##
-############
+#############################
+## Builtin hook over rides
+#############################
 
 ## Offer to install missing package if command is not found 
 if [[ -r /usr/share/zsh/functions/command-not-found.zsh ]]; then
@@ -87,51 +99,66 @@ function precmd() {
       case "${?}" in 
         0) ;;
         1) fuck ;;
-        *) clear ; tgpt "$(tail -n1 "${HISTORY}")" ;;
+        *)
+          clear
+          tgpt "$(tail -n1 "${HISTORY}")"
+          ;;
       esac ;;
     *)
-      case "${?}" in 0) ;;
+      case "${?}" in
+        0) ;;
         *) fuck ;;
       esac ;;
-  esac }
+  esac
+}
 
-## When the dir is changed recieve a [y/n] prompt listing the total number of files in the dir and offer to `ls -a` on 'y'
+## When the dir is changed recieve a [y/n] prompt listing the total number of files in the dir and offer to `ls -ash` on 'y'
 function chpwd() {
   case "${PWD}" in
     "${HOME}") dirs -c ;;
     *)
-      echo "\033[34mThere are $(( $( ls -l | wc -l)-1 )) files in the current dir. Exec ls?\033[0m: [Y/n]? "
-      read -r YN
+      echo "${BLUE}There are $(( $( ls -l | wc -l)-1 )) files in the current dir. Exec ls?${WHITE}: [Y/n]? "
+      read -k 1 -s YN < /dev/null
         case "${YN}" in
-          y|Y) ls -ash ;;
-      esac ;;
-  esac }
+          y|Y) clear ; ls -ash ;;
+          *) return ;;
+      esac
+      ;;
+  esac
+}
 
-################
-## _Functions ##
-################
+#########################
+## Language assistance
+#########################
 
 ## Push ctrl+t in terminal to translate the current buffer into a language selected in fzf and display it in most, unless buffer is empty- then truncate your zsh history file
-function _t() {
+function _language::936e5d23f3f057b70e4ede374f59826cb3db4e2cd20650b7d2c95ee9() {
 case "${PWD}" in
   "${HOME}")
     case "${BUFFER}" in
       '')
-        notify-send 'Cleaning .zhistory'
+        clear
+        printf "${WHITE}\033[1;0HCleaning .zhistory${WHITE}"
         bleachbit -c --preset > /dev/null 2>&1
+        printf "${WHITE}\033[1;0H                    "
         truncate "${HISTORY}" -s 0 > /dev/null 2>&1
         dirs -c
-        notify-send 'History cleared' ;;
+        printf "${GREEN}\033[1;0HHistory cleared${WHITE}"
+        sleep 1
+        printf "\033[m                      \033[m"
+        printf "\r${GREEN}\033[1;0HPress <Enter> to exit\033[0m" ;;
       *)
         trans -b :"$(trans -list-codes | fzf --layout=reverse)" "${BUFFER}" | most ;;
-    esac ;;
+    esac
+    ;;
   *) ;;
-esac }
-zle -N _t
-bindkey "^T" _t
+esac
+}
+zle -N _language::936e5d23f3f057b70e4ede374f59826cb3db4e2cd20650b7d2c95ee9
+bindkey "^T" _language::936e5d23f3f057b70e4ede374f59826cb3db4e2cd20650b7d2c95ee9
 
 ## Push ctrl+d to view aspell for the correct spelling of last word in the buffer using fzf and replace the last word, if selected. (esc exits fzf searches)
-function _s() {
+function _language::6a286594e036b31b5ae96ce5ad39226f6c1a947212b9823f35b14132() {
 case ${PWD} in
   "${HOME}")
     setopt shwordsplit
@@ -146,72 +173,114 @@ case ${PWD} in
     | fzf --layout=reverse )
     if [[ -z "${NOTE}" ]] ; then
       return
-    else xdotool key --clearmodifiers ctrl+h || wtype -M ctrl h -m ctrl
-      RBUFFER+="${NOTE}"
-      xdotool key --clearmodifiers ctrl+e || wtype -M ctrl e -m ctrl
+    else
+      LBUFFER="${NOTE}"
     fi
     unsetopt shwordsplit ;;
   *) ;;
 esac }
-zle -N _s
-bindkey "^D" _s
+zle -N _language::6a286594e036b31b5ae96ce5ad39226f6c1a947212b9823f35b14132
+bindkey "^D" _language::6a286594e036b31b5ae96ce5ad39226f6c1a947212b9823f35b14132
+
+#########################
+## Smartphone utilities
+#########################
 
 ## Push ctrl+w to fetch local weather data for your current region as well as the 7 day forcast and display it in most
-function _w() {
+function _weather::d8684fa189038cb94baa4eaaa8d7798e000ea72d0ed49d573a117850() {
 case "${PWD}" in
   "${HOME}")
+    clear
     declare -r LOC="galveston,texas"
-    printf "\033[0m\033[34mFetching weather data...\033[0m"
-    CUR=$(ansiweather -l "${LOC}" -u imperial -i true -w true -h true -H true -p true -d true -a false &)
-    printf "\033[0m\033[34m\nFetching 7-day forecast...\n\033[0m"
-    FRC=$(ansiweather -F -l "${LOC}" -u imperial -a false &)
-    echo "${CUR}" '\n\n' "${FRC}" | most -wd;;
+    printf "${BLUE}\033[1;1H\rFetching local weather...${WHITE}"
+    CUR=$(ansiweather -l "${LOC}" -u imperial -i true -s true -w true -h true -H true -p true -d true -a false | sed 's/-/\\n/g ; s/:/:\nTemp:/ ; s/ //' &)
+    printf "${BLUE}\033[1;1H\rFetching 7-day forecast...${WHITE}"
+    FRC=$(ansiweather -f7 -l "${LOC}" -u imperial -s true -a false | sed 's/-/\\n/g ; s/ //' &)
+    clear
+    echo "${YELLOW}${CUR}\n\n${MAGENTA}${FRC}" \
+    | sed 's/\(forecast: \)\(.*\)/\1\n\2/g ; s/^[[:space:]]*//' \
+    | most
+    printf "${GREEN}Press <Enter> to exit${WHITE}"
+   ;;
   *) ;;
 esac }
-zle -N _w
-bindkey "^W" _w
+zle -N _weather::d8684fa189038cb94baa4eaaa8d7798e000ea72d0ed49d573a117850
+bindkey "^W" _weather::d8684fa189038cb94baa4eaaa8d7798e000ea72d0ed49d573a117850
 
 ## Push ctrl+p to browse music folder using fzf and launch an album using mpv
-function radio() {
+function _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b() { {
+  MUSICDIR="${HOME}/Music/"
+  printf "${GREEN}Radio on${WHITE}"
+  sleep 1
+  BAND="$(find "${MUSICDIR}" -type d -maxdepth 1 -printf "%f\n" \
+    | grep -v "Music" \
+    | fzf --layout=reverse )"
+  ALBUM="$(find "${MUSICDIR}/${BAND}" -type d -maxdepth 1 -printf "%f\n" \
+    | grep -v "${BAND}" \
+    | fzf --layout=reverse )"
+  DISK="${MUSICDIR}/${BAND}/${ALBUM}"
   clear
-  mpv --start=0 "$(find "$("${HOME}/Music/" -type d | fzf )"/*)"
-  }
-zle -N radio
-bindkey "^P" radio
+  printf "\033[0mWould you like to:$YELLOW\nA)$WHITE Play this album$GREEN\nS)$WHITE Play a song off this album$RED\n*)$WHITE Exit\n"
+  read -k 1 -s YN > /dev/null
+  case $YN in
+    a|A) mpv --start=0 ${DISK}/* >/dev/null ;;
+    s|S)
+      TRACK="$(find "${DISK}" -type f -maxdepth 1 -printf "%f\n" \
+        | grep -v "${ALBUM}" \
+        | fzf --layout=reverse)"
+      mpv --start=0 ${DISK}/${TRACK}
+      ;;
+    *) clear
+       printf "${WHITE}\033[1;0HRadio off"
+       sleep 1
+       printf "${GREEN}\033[1;0HPress <Enter> to exit${WHITE}"
+       return
+      ;;
+    esac
+} always {
+case $? in
+  0) ;;
+  *) return ;;
+esac
+} }
 
-#######################
-## script::functions ##
-#######################
+##########################################################################
+## script::functions bindkeys located in the _zsh::setup function below ##
+##########################################################################
 
 SCRIPT= ## Set the $SCRIPT var
 
-## Push ctrl+a to add the last command run to your script var
-function _script::add() {
-  SCRIPT+=("$(tail -n1 "${HISTORY}")\n") ; notify-send "Snippet added"
-  }
-zle -N _script::add
-bindkey "^A" _script::add 
+## Add the last command run to your script var
+function _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7() {
+  SCRIPT+=("$(tail -n1 "${HISTORY}")\n")
+  clear
+  printf "${GREEN}\033[1;0HSnippet added${WHITE}"
+  sleep 2
+  printf "${WHITE}\033[2;0H${PWD}: "
+  printf "\r\033[2;14H: "
+}
 
-## Push ctrl+v to view the SCRIPT var in vim
-function _script::view() {
+## View the SCRIPT var in vim, or if buffer is blank, open vim
+function _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00() {
   echo "$SCRIPT" | vim -
-  }
-zle -N _script::view
-bindkey "^V" _script::view
+}
 
-## Push ctrl+e to clear the script buffer
-function _script::erase() {
-  SCRIPT=() ; notify-send "Script buffer cleared"
-  }
-zle -N _script::erase
-bindkey "^E" _script::erase
+## Clear the script buffer
+function _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1() {
+  SCRIPT=()
+  clear
+  printf "${GREEN}\033[1;0HScript buffer cleared${WHITE}"
+  sleep 2
+  printf "${WHITE}\033[2;0H${PWD}: "
+  printf "\r\033[2;16H"
+}
 
 ################
-## zsh::setup ##
+## zsh::setup
 ################
 
 ## Check for zsh and installed packages and, if not present, prompt for install on initial line 
-function _zsh::setup() {
+function _zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e() {
 ## Check if zsh is enabled in ~/.bashrc
   if [[ $(tail -n1  ~/.bashrc) != "exec zsh" ]] ; then
     echo "exec zsh" >> ~/.bashrc
@@ -226,8 +295,12 @@ function _zsh::setup() {
   for PKG in thefuck ansiweather aspell axel bleachbit fzf most mpv tgpt trans vim ; do
     if ! which "${PKG}" &> /dev/null ; then
       case "${PKG}" in
-        aspell) PKG='aspell-en' ;;
-        trans) PKG='translate-shell' ;;
+        aspell)
+          PKG='aspell-en'
+          ;;
+        trans)
+          PKG='translate-shell'
+          ;;
         *) ;;
       esac
     OUT+="${PKG} "
@@ -237,13 +310,36 @@ function _zsh::setup() {
   if [[ -z "${OUT}" ]] ; then
     return
   else
-    print -z "sudo pacman -Syyu ${OUT}"
-  fi }
+    printf "${RED}Missing package warning!${WHITE}"
+    printf "${RED}ZSH requires ${OUT%?}${WHITE}"
+    print -z "sudo pacman -Syyu ${OUT%?}"
+  fi
+## Check desktop version
+case $XDG_SESSION_DESKTOP in
+  i3)
+## Ctrl+a adds the last line to the scripting buffer
+    zle -N _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7
+    bindkey "^A" _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7
+## Ctrl+v opens the script in vim
+    zle -N _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00
+    bindkey "^V" _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00
+## Ctrl+x erases the script buffer
+    zle -N _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1
+    bindkey "^X" _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1
+    ;;
+  swmo)
+## Ctrl+p activates fzf/mpv mp3 player
+    zle -N _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b
+    bindkey "^P" _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b
+    ;;
+  *) ;;
+esac
+}
 ## Execute Setup at startup
-_zsh::setup
+_zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e
 
 #############
-## Sources ##
+## Sources
 #############
 
 ## Source ZSH plugins
