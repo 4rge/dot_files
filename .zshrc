@@ -138,17 +138,26 @@ case "${PWD}" in
     case "${BUFFER}" in
       '')
         clear
-        printf "${WHITE}\033[1;0HCleaning .zhistory${WHITE}"
+        printf "\033[1;0HCleaning .zhistory"
         bleachbit -c --preset > /dev/null 2>&1
-        printf "${WHITE}\033[1;0H                    "
+        printf "\033[1;0H                    "
         truncate "${HISTORY}" -s 0 > /dev/null 2>&1
         dirs -c
-        printf "${GREEN}\033[1;0HHistory cleared${WHITE}"
+        printf "${GREEN}\033[1;0HHistory cleared"
         sleep 1
         printf "\033[m                      \033[m"
         printf "\r${GREEN}\033[1;0HPress <Enter> to exit\033[0m" ;;
       *)
-        trans -b :"$(trans -list-codes | fzf --layout=reverse)" "${BUFFER}" | most ;;
+        LANG="$(trans -list-codes | fzf --layout=reverse)" 
+        TRANS="$(trans -b :$LANG "${BUFFER}")"
+        case $LANG in
+          es) COLOR="${YELLOW}" ;;
+          de) COLOR="${RED}" ;;
+          fr) COLOR="${BLUE}" ;;
+          it) COLOR="${GREEN}" ;;
+          *) COLOR=() ;;
+        esac
+        echo "${COLOR}${TRANS}" | most
     esac
     ;;
   *) ;;
@@ -192,15 +201,15 @@ case "${PWD}" in
   "${HOME}")
     clear
     declare -r LOC="galveston,texas"
-    printf "${BLUE}\033[1;1H\rFetching local weather...${WHITE}"
+    printf "${BLUE}\033[1;1H\rFetching local weather..."
     CUR=$(ansiweather -l "${LOC}" -u imperial -i true -s true -w true -h true -H true -p true -d true -a false | sed 's/-/\\n/g ; s/:/:\nTemp:/ ; s/ //' &)
-    printf "${BLUE}\033[1;1H\rFetching 7-day forecast...${WHITE}"
+    printf "${BLUE}\033[1;1H\rFetching 7-day forecast..."
     FRC=$(ansiweather -f7 -l "${LOC}" -u imperial -s true -a false | sed 's/-/\\n/g ; s/ //' &)
     clear
     echo "${YELLOW}${CUR}\n\n${MAGENTA}${FRC}" \
     | sed 's/\(forecast: \)\(.*\)/\1\n\2/g ; s/^[[:space:]]*//' \
     | most
-    printf "${GREEN}Press <Enter> to exit${WHITE}"
+    printf "${GREEN}Press <Enter> to exit"
    ;;
   *) ;;
 esac }
@@ -210,7 +219,7 @@ bindkey "^W" _weather::d8684fa189038cb94baa4eaaa8d7798e000ea72d0ed49d573a117850
 ## Push ctrl+p to browse music folder using fzf and launch an album using mpv
 function _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b() { {
   MUSICDIR="${HOME}/Music/"
-  printf "${GREEN}Radio on${WHITE}"
+  printf "${GREEN}Radio on"
   sleep 1
   BAND="$(find "${MUSICDIR}" -type d -maxdepth 1 -printf "%f\n" \
     | grep -v "Music" \
@@ -220,7 +229,7 @@ function _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b() { {
     | fzf --layout=reverse )"
   DISK="${MUSICDIR}/${BAND}/${ALBUM}"
   clear
-  printf "\033[0mWould you like to:$YELLOW\nA)$WHITE Play this album$GREEN\nS)$WHITE Play a song off this album$RED\n*)$WHITE Exit\n"
+  printf "\033[0mWould you like to:$YELLOW\nA)$WHITE Play this album$GREEN\nS)$WHITE Play a song off this album$MAGENTA\nC)$WHITE Set an alarm$RED\n*)$WHITE Exit\n"
   read -k 1 -s YN > /dev/null
   case $YN in
     a|A) mpv --start=0 ${DISK}/* >/dev/null ;;
@@ -230,10 +239,27 @@ function _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b() { {
         | fzf --layout=reverse)"
       mpv --start=0 ${DISK}/${TRACK}
       ;;
+    c|C)
+        TRACK="$(find "${DISK}" -type f -maxdepth 1 -printf "%f\n" \
+        | grep -v "${ALBUM}" \
+        | fzf --layout=reverse)"
+        clear
+        TIME="$(date -d "$(date) +8 hours" +%H:%M:%S)"
+        printf "${GREEN}Alarm set for ${WHITE}${TIME}"
+        printf "\033[4;0HWake up song set as ${GREEN}${TRACK}${WHITE} by ${GREEN}${BAND}"
+        for i in $(seq 28800.0 -1.0 0); do
+          TIME="$(printf "%.2f" $((i/3600.0)) )"
+          printf "\033[0m\033[2;0H                                        "
+          printf "\033[2;0H${GREEN}${TIME}${WHITE} more hours ${GREEN}$(( 100 - (${TIME} / 8) * 100 ))%%${WHITE} complete"
+          sleep 1
+        done
+        sleep 8h
+        mpv --start=0 ${DISK}/${TRACK}
+        ;;
     *) clear
-       printf "${WHITE}\033[1;0HRadio off"
+       printf "${GREEN}\033[1;0HRadio off"
        sleep 1
-       printf "${GREEN}\033[1;0HPress <Enter> to exit${WHITE}"
+       printf "${GREEN}\033[1;0HPress <Enter> to exit"
        return
       ;;
     esac
@@ -243,9 +269,12 @@ case $? in
   *) return ;;
 esac
 } }
+## Ctrl+p activates fzf/mpv mp3 player
+zle -N _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b
+bindkey "^P" _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b 
 
 ##########################################################################
-## script::functions bindkeys located in the _zsh::setup function below ##
+## script::functions bindkeys located in the _zsh::setup function below
 ##########################################################################
 
 SCRIPT= ## Set the $SCRIPT var
@@ -254,9 +283,9 @@ SCRIPT= ## Set the $SCRIPT var
 function _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7() {
   SCRIPT+=("$(tail -n1 "${HISTORY}")\n")
   clear
-  printf "${GREEN}\033[1;0HSnippet added${WHITE}"
+  printf "${GREEN}\033[1;0HSnippet added"
   sleep 2
-  printf "${WHITE}\033[2;0H${PWD}: "
+  printf "\033[2;0H${PWD}: "
   printf "\r\033[2;14H: "
 }
 
@@ -269,9 +298,9 @@ function _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00() {
 function _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1() {
   SCRIPT=()
   clear
-  printf "${GREEN}\033[1;0HScript buffer cleared${WHITE}"
+  printf "${GREEN}\033[1;0HScript buffer cleared"
   sleep 2
-  printf "${WHITE}\033[2;0H${PWD}: "
+  printf "\033[2;0H${PWD}: "
   printf "\r\033[2;16H"
 }
 
@@ -295,23 +324,25 @@ function _zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e() {
   for PKG in thefuck ansiweather aspell axel bleachbit fzf most mpv tgpt trans vim ; do
     if ! which "${PKG}" &> /dev/null ; then
       case "${PKG}" in
-        aspell)
-          PKG='aspell-en'
-          ;;
-        trans)
-          PKG='translate-shell'
-          ;;
+        aspell) PKG='aspell-en' ;;
+        trans) PKG='translate-shell' ;;
         *) ;;
       esac
     OUT+="${PKG} "
     fi
   done
-## Print the missing packages to terminal
-  if [[ -z "${OUT}" ]] ; then
-    return
+## Check if depends are installed
+  if [[ -z "${OUT}" ]] ; then 
+## Check if an update is needed
+    if ! pacman -Qu ; then
+      return
+    else
+      print -z "sudo pacman -Syyu"
+    fi
   else
-    printf "${RED}Missing package warning!${WHITE}"
-    printf "${RED}ZSH requires ${OUT%?}${WHITE}"
+## Print -z any necessary depends
+    printf "${RED}Missing package warning!"
+    printf "${RED}ZSH requires ${OUT%?}"
     print -z "sudo pacman -Syyu ${OUT%?}"
   fi
 ## Check desktop version
@@ -327,11 +358,7 @@ case $XDG_SESSION_DESKTOP in
     zle -N _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1
     bindkey "^X" _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1
     ;;
-  swmo)
-## Ctrl+p activates fzf/mpv mp3 player
-    zle -N _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b
-    bindkey "^P" _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b
-    ;;
+  swmo) ;;
   *) ;;
 esac
 }
