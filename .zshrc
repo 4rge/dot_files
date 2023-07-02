@@ -273,37 +273,6 @@ esac
 zle -N _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b
 bindkey "^P" _radio::50c5e1885673628f5d99a4e1746ad12f2fd112327092d816d9ebad3b 
 
-##########################################################################
-## script::functions bindkeys located in the _zsh::setup function below
-##########################################################################
-
-SCRIPT= ## Set the $SCRIPT var
-
-## Add the last command run to your script var
-function _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7() {
-  SCRIPT+=("$(tail -n1 "${HISTORY}")\n")
-  clear
-  printf "${GREEN}\033[1;0HSnippet added"
-  sleep 2
-  printf "\033[2;0H${PWD}: "
-  printf "\r\033[2;14H: "
-}
-
-## View the SCRIPT var in vim, or if buffer is blank, open vim
-function _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00() {
-  echo "$SCRIPT" | vim -
-}
-
-## Clear the script buffer
-function _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1() {
-  SCRIPT=()
-  clear
-  printf "${GREEN}\033[1;0HScript buffer cleared"
-  sleep 2
-  printf "\033[2;0H${PWD}: "
-  printf "\r\033[2;16H"
-}
-
 ################
 ## zsh::setup
 ################
@@ -321,7 +290,7 @@ function _zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e() {
     fi
   done
 ## Check if zsh depends are installed
-  for PKG in thefuck ansiweather aspell axel bleachbit fzf most mpv tgpt trans vim ; do
+  for PKG in aspell axel bleachbit fzf most mpv trans vim yay ; do
     if ! which "${PKG}" &> /dev/null ; then
       case "${PKG}" in
         aspell) PKG='aspell-en' ;;
@@ -331,36 +300,32 @@ function _zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e() {
     OUT+="${PKG} "
     fi
   done
+  for YAY in answeather tgpt thefuck; do
+    DL+="${YAY}"
+  done
 ## Check if depends are installed
   if [[ -z "${OUT}" ]] ; then 
 ## Check if an update is needed
     if ! pacman -Qu ; then
       return
     else
-      print -z "sudo pacman -Syyu"
+      DONE+="sudo pacman -Syyu"
+    fi
+    if [[ -z "${DL}" ]] ; then
+      return
+    else
+      if [[ -z "${DONE}" ]] ; then
+        DONE+="yay -Syyu"
+      else
+        DONE+="; yay -Syyu"
+      fi
     fi
   else
 ## Print -z any necessary depends
     printf "${RED}Missing package warning!"
-    printf "${RED}ZSH requires ${OUT%?}"
-    print -z "sudo pacman -Syyu ${OUT%?}"
+    printf "${RED}ZSH requires ${OUT%?} ${DL}"
+    print -z "sudo pacman -Syyu ${OUT%?}; yay -Syyu ${DL}"
   fi
-## Check desktop version
-case $XDG_SESSION_DESKTOP in
-  i3)
-## Ctrl+a adds the last line to the scripting buffer
-    zle -N _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7
-    bindkey "^A" _script::8e8e2195745c1ddc664c3075594d7ae7c8befb7ac995ce1dd84eabd7
-## Ctrl+v opens the script in vim
-    zle -N _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00
-    bindkey "^V" _script::7672c832e7307e006156cfbbb05258b2b2b36ee55080e1077a234a00
-## Ctrl+x erases the script buffer
-    zle -N _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1
-    bindkey "^X" _script::1ddb894f60bbaf435d1a3d51837b3ae00673573551d1e5042ac750f1
-    ;;
-  swmo) ;;
-  *) ;;
-esac
 }
 ## Execute Setup at startup
 _zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e
@@ -373,7 +338,6 @@ _zsh::c124bad8ecb45eac3ccb51bfb10d2841834ba5168d9a6fda53726e8e
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 source /usr/share/zsh-theme-powerlevel10k/powerlevel10k.zsh-theme
 source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source /usr/share/zsh/plugins/zsh-history-substring-search/zsh-history-substring-search.zsh
 
 ## Silence p10k message
 typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
